@@ -3,6 +3,7 @@ IMPORT Taxi;
 #WORKUNIT('name', 'Taxi Data: Testing');
 
 taxiData := Taxi.Files.ETL.inFile;
+burroughData := Taxi.Util.BurroughsBoundingBoxes;
 
 NYC_EAST_BOUND := -71.777491;
 NYC_WEST_BOUND := -79.762590;

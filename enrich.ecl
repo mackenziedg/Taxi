@@ -5,6 +5,9 @@ IMPORT Std;
 
 validatedData := Taxi.Files.Validation.inFile;
 
+Holidays := Taxi.Util.HolidayDates;
+holidaySet := SET(Holidays, holiday);
+
 NYC_EAST_BOUND := -71.777491;
 NYC_WEST_BOUND := -79.762590;
 NYC_NORTH_BOUND := 45.015865;
@@ -13,6 +16,24 @@ NYC_SOUTH_BOUND := 40.477399;
 Taxi.Files.Enriched.YellowLayout MakeEnrichedRec(Taxi.Files.Validation.YellowLayout inRec) := TRANSFORM
     SELF.pickup_date := Std.Date.FromStringToDate(inRec.tpep_pickup_datetime[..10], '%Y-%m-%d');
     SELF.pickup_time := Std.Date.FromStringToTime(inRec.tpep_pickup_datetime[12..], '%H:%M:%S');
+    SELF.pickup_minutes_after_midnight := Std.Date.Hour(SELF.pickup_time) * 60 + Std.Date.Minute(SELF.pickup_time);
+    SELF.pickup_time_window := SELF.pickup_minutes_after_midnight DIV 15 + 1; //15 could be replaced w/ a constant
+    SELF.pickup_time_hour := Std.Date.Hour(SELF.pickup_time);
+    SELF.pickup_day_of_week := Std.Date.DayOfWeek(SELF.pickup_date);
+    SELF.dropoff_date := Std.Date.FromStringToDate(inRec.tpep_dropoff_datetime[..10], '%Y-%m-%d');
+    SELF.dropoff_time := Std.Date.FromStringToTime(inRec.tpep_dropoff_datetime[12..], '%H:%M:%S');
+    SELF.dropoff_minutes_after_midnight := Std.Date.Hour(SELF.dropoff_time) * 60 + Std.Date.Minute(SELF.dropoff_time);
+    SELF.dropoff_time_window := SELF.dropoff_minutes_after_midnight DIV 15 + 1;
+    SELF.dropoff_time_hour := Std.Date.Hour(SELF.dropoff_time);
+    SELF.dropoff_day_of_week := Std.Date.DayOfWeek(SELF.dropoff_date);
+    SELF.trip_duration_minutes := MAP
+         (
+            SELF.dropoff_date = SELF.pickup_date        =>  SELF.dropoff_minutes_after_midnight - SELF.pickup_minutes_after_midnight + 1,
+            SELF.dropoff_date = SELF.pickup_date + 1    =>  SELF.dropoff_minutes_after_midnight + ((24 * 60) - SELF.pickup_minutes_after_midnight) + 1,
+            SELF.dropoff_date > SELF.pickup_date + 1    =>  ((Std.Date.DaysBetween(SELF.pickup_date, SELF.dropoff_date) - 1) * (60 * 24)) + SELF.dropoff_minutes_after_midnight + ((24 * 60) - SELF.pickup_minutes_after_midnight) + 1,
+            0
+        );
+    SELF.is_holiday := SELF.pickup_date IN holidaySet;
     SELF.is_good_passenger_count := inRec.passenger_count > 0;
     SELF.is_valid_vendor_id := inRec.VendorID IN [1,2];
     SELF.is_reasonable_distance := inRec.trip_distance > 0

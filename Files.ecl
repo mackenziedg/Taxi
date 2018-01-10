@@ -136,6 +136,19 @@ EXPORT Files := MODULE
           BOOLEAN  is_ride_free;
           BOOLEAN  pickup_in_bounding_box;
           BOOLEAN  dropoff_in_bounding_box;
+          UNSIGNED3 pickup_minutes_after_midnight;
+          UNSIGNED2 pickup_time_hour;
+          UNSIGNED1 pickup_day_of_week;
+          Std.Date.Time_t dropoff_time;
+          UNSIGNED3 dropoff_minutes_after_midnight;
+          UNSIGNED2 dropoff_time_window;
+          UNSIGNED2 dropoff_time_hour;
+          UNSIGNED1 dropoff_day_of_week;
+          UNSIGNED2 pickup_time_window;
+          Std.Date.Date_t dropoff_date;
+          UNSIGNED3 trip_duration_minutes;
+          BOOLEAN is_holiday;
+          // trip_distance_bucket;
           BOOLEAN  is_valid_record;
        END;
        
