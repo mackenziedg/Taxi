@@ -1,15 +1,18 @@
 IMPORT Taxi;
+IMPORT Std;
 
-#WORKUNIT('name', 'Taxi Data: Testing');
+#WORKUNIT('name', 'Taxi Data: Enriching');
 
-taxiData := Taxi.Files.ETL.inFile;
+validatedData := Taxi.Files.Validation.inFile;
 
 NYC_EAST_BOUND := -71.777491;
 NYC_WEST_BOUND := -79.762590;
 NYC_NORTH_BOUND := 45.015865;
 NYC_SOUTH_BOUND := 40.477399;
 
-Taxi.Files.Validation.YellowLayout MakeValidationRec(Taxi.Files.ETL.YellowLayout inRec) := TRANSFORM
+Taxi.Files.Enriched.YellowLayout MakeEnrichedRec(Taxi.Files.Validation.YellowLayout inRec) := TRANSFORM
+    SELF.pickup_date := Std.Date.FromStringToDate(inRec.tpep_pickup_datetime[..10], '%Y-%m-%d');
+    SELF.pickup_time := Std.Date.FromStringToTime(inRec.tpep_pickup_datetime[12..], '%H:%M:%S');
     SELF.is_good_passenger_count := inRec.passenger_count > 0;
     SELF.is_valid_vendor_id := inRec.VendorID IN [1,2];
     SELF.is_reasonable_distance := inRec.trip_distance > 0
@@ -32,20 +35,20 @@ Taxi.Files.Validation.YellowLayout MakeValidationRec(Taxi.Files.ETL.YellowLayout
                               AND SELF.is_valid_payment_type
                               AND SELF.is_dropoff_after_pickup
                               AND SELF.is_zero_time_and_distance
-                              AND NOT SELF.is_ride_free
+                              AND SELF.is_ride_free
                               AND SELF.pickup_in_bounding_box
                               AND SELF.dropoff_in_bounding_box;
                               
     SELF := inRec;
 END;
 
-validatedData := PROJECT
+EnrichedData := PROJECT
     (
-        taxiData,
-        MakeValidationRec(LEFT)
+        validatedData,
+        MakeEnrichedRec(LEFT)
     );
 
-//OUTPUT(taxiData);
+OUTPUT(EnrichedData);
 //OUTPUT(validatedData, NAMED('validatedData'));
 //OUTPUT(validatedData(total_adds_up), NAMED('invalidDistance'));
-OUTPUT(validatedData,, Taxi.Files.Validation.PATH, COMPRESSED, OVERWRITE);
+//OUTPUT(validatedData,, Taxi.Files.Validation.PATH, COMPRESSED, OVERWRITE);
